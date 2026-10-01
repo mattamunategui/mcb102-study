@@ -1,5 +1,5 @@
-import { h, applyTheme, fill, put } from '../lib/render.js?v=49d96dca82';
-import * as store from '../lib/store.js?v=49d96dca82';
+import { h, applyTheme, fill, put } from '../lib/render.js?v=7df8fd5db6';
+import * as store from '../lib/store.js?v=7df8fd5db6';
 
 export function render(ctx) {
   document.title = 'Settings · MCB 102';

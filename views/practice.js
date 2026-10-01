@@ -1,7 +1,8 @@
 // Practice engine shared by modules, exams, the missed queue and memorize-quiz.
-import { h, md, mdInline, figureEl, plain, fmtTime, fill, put } from '../lib/render.js?v=49d96dca82';
-import * as store from '../lib/store.js?v=49d96dca82';
+import { h, md, mdInline, figureEl, plain, fmtTime, fill, put } from '../lib/render.js?v=7df8fd5db6';
+import * as store from '../lib/store.js?v=7df8fd5db6';
 
+export const GSI_LEVEL = { 3: 'Exam question', 2: 'Emphasized', 1: 'Covered' };
 export const DIFF = { 1: 'Recall', 2: 'Apply', 3: 'Exam-hard' };
 const SUP = { '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '⁻': '-', '⁺': '+' };
 
@@ -48,7 +49,7 @@ export function mountEngine(root, opts) {
   const items = opts.items;
   const timed = !!opts.timed;
   const filtersOn = opts.filters !== false && !timed;
-  const S = { filter: 'all', shuffle: false, list: [], idx: 0, phase: 'run', confirming: false };
+  const S = { filter: 'all', order: opts.defaultOrder || 'orig', shuffle: false, list: [], idx: 0, phase: 'run', confirming: false };
   const sess = new Map();
   const st = (q) => { if (!sess.has(q.id)) sess.set(q.id, { resp: undefined, revealed: false, done: false, ok: null }); return sess.get(q.id); };
   let timerId = null, endsAt = 0, timerEl = null;
@@ -60,9 +61,11 @@ export function mountEngine(root, opts) {
       if (S.filter === 'unanswered') return !a;
       if (S.filter === 'missed') return a && !a.ok;
       if (S.filter === 'emphasis') return !!it.q.emphasis;
+      if (S.filter === 'gsi') return !!it.q.gsi;
       return true;
     });
     if (S.shuffle) l = shuffle([...l]);
+    else if (S.order === 'gsi') l = l.map((it, i) => [it, i]).sort((a, b) => (b[0].q.gsi || 0) - (a[0].q.gsi || 0) || a[1] - b[1]).map((x) => x[0]);
     S.list = l; S.idx = 0; S.phase = 'run';
   }
   rebuild();
@@ -167,10 +170,13 @@ export function mountEngine(root, opts) {
   // ---- rendering ----
   function toolbar() {
     if (!filtersOn) return null;
-    const counts = { all: items.length, unanswered: items.filter((i) => !store.getQ(i.q.id)).length, missed: items.filter((i) => { const a = store.getQ(i.q.id); return a && !a.ok; }).length, emphasis: items.filter((i) => i.q.emphasis).length };
+    const counts = { all: items.length, unanswered: items.filter((i) => !store.getQ(i.q.id)).length, missed: items.filter((i) => { const a = store.getQ(i.q.id); return a && !a.ok; }).length, emphasis: items.filter((i) => i.q.emphasis).length, gsi: items.filter((i) => i.q.gsi).length };
     const sel = h('select', { id: 'flt', 'aria-label': 'Filter questions', onchange: (e) => { S.filter = e.target.value; rebuild(); draw(); } },
-      ...[['all', 'All'], ['unanswered', 'Unanswered'], ['missed', 'Missed'], ['emphasis', 'Prof emphasis']].map(([v, l]) => h('option', { value: v, selected: v === S.filter }, `${l} (${counts[v]})`)));
+      ...[['all', 'All'], ['unanswered', 'Unanswered'], ['missed', 'Missed'], ['emphasis', 'Prof emphasis'], ['gsi', '🎯 GSI focus only']].map(([v, l]) => h('option', { value: v, selected: v === S.filter }, `${l} (${counts[v]})`)));
+    const ord = h('select', { id: 'ord', 'aria-label': 'Question order', disabled: S.shuffle, onchange: (e) => { S.order = e.target.value; rebuild(); draw(); } },
+      ...[['orig', 'Original order'], ['gsi', 'GSI first']].map(([v, l]) => h('option', { value: v, selected: v === S.order }, l)));
     return h('div', { class: 'toolbar' }, h('label', { class: 'field-inline', for: 'flt' }, 'Show'), sel,
+      h('label', { class: 'field-inline', for: 'ord' }, 'Order'), ord,
       h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: S.shuffle, onchange: (e) => { S.shuffle = e.target.checked; rebuild(); draw(); } }), ' Shuffle'));
   }
 
@@ -210,6 +216,7 @@ export function mountEngine(root, opts) {
     if (it.section && opts.showSections !== false) body.push(h('div', { class: 'q-section' }, it.section));
     body.push(h('div', { class: 'q-meta' },
       h('span', { class: 'q-type' }, { mcq: 'Multiple choice', tf: 'True / False', multi: 'Select all that apply', numeric: 'Numeric', short: 'Short answer' }[q.type]),
+      q.gsi && h('span', { class: 'badge gsi lv' + q.gsi, title: 'GSI exam focus: ' + GSI_LEVEL[q.gsi] }, '🎯 GSI'),
       it.label && h('span', { class: 'q-label' }, it.href ? h('a', { href: it.href }, it.label) : it.label)));
     body.push(h('div', { class: 'prompt', html: md(q.prompt) }));
     if (q.figure) body.push(figureEl(q.figure));
@@ -348,5 +355,5 @@ export function render(ctx) {
   const items = (mod.questions || []).map((q) => ({ q }));
   const root = h('div', { class: 'wrap engine' });
   ctx.root.append(root);
-  ctx.onCleanup(mountEngine(root, { title: `Practice: ${mod.title}`, items, backHref: '#/m/' + id, backLabel: 'Module' }));
+  ctx.onCleanup(mountEngine(root, { title: `Practice: ${mod.title}`, items, backHref: '#/m/' + id, backLabel: 'Module', defaultOrder: 'gsi' }));
 }

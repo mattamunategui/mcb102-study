@@ -1,5 +1,9 @@
-import { h, md, mdInline, figureEl, resourceEl, fill, put } from '../lib/render.js?v=49d96dca82';
-import * as store from '../lib/store.js?v=49d96dca82';
+import { h, md, mdInline, figureEl, resourceEl, fill, put } from '../lib/render.js?v=7df8fd5db6';
+import * as store from '../lib/store.js?v=7df8fd5db6';
+
+export const GSI_LEVEL = { 3: 'Exam question', 2: 'Emphasized', 1: 'Covered' };
+export const levelPill = (l) => h('span', { class: 'gsi-lv lv' + l, title: 'GSI level ' + l + ' of 3' },
+  h('span', { class: 'gsi-dots', 'aria-hidden': 'true' }, [1, 2, 3].map((i) => h('i', { class: i <= l ? 'on' : '' }))), GSI_LEVEL[l] || 'Covered');
 
 export function render(ctx) {
   const [id] = ctx.params;
@@ -14,6 +18,8 @@ export function render(ctx) {
   document.title = mod.title + ' · MCB 102';
 
   const sections = mod.sections || [];
+  const target = new URLSearchParams((location.hash.split('?')[1] || '')).get('s');
+  const targetIdx = sections.findIndex((x) => x.id === target);
   const readEls = new Map(); // sectionId -> {tocLink, btn, section}
   const updateProgress = () => {
     const n = store.readCount(id);
@@ -54,6 +60,12 @@ export function render(ctx) {
       h('div', { class: 'sec-head' }, h('h2', { id: sid + '-h' }, h('span', { class: 'sec-n' }, String(i + 1)), ' ', s.heading), btn),
       h('div', { class: 'md', html: md(s.body) }));
     (s.figures || []).forEach((f) => sec.append(figureEl(f)));
+    const gsi = (s.gsiFocus || []).filter((g) => g && g.text);
+    if (gsi.length) sec.append(h('aside', { class: 'gsi-focus', 'aria-label': 'GSI exam focus' },
+      h('div', { class: 'gf-title' }, '🎯 GSI exam focus'),
+      h('ul', { class: 'gf-list' }, [...gsi].sort((a, b) => (b.level || 1) - (a.level || 1)).map((g) => h('li', null,
+        h('span', { class: 'gf-text', html: mdInline(g.text) }),
+        h('span', { class: 'gf-meta' }, levelPill(g.level || 1), g.source && h('span', { class: 'gf-src' }, g.source)))))));
     const emph = s.profEmphasis || [];
     if (emph.length) sec.append(h('aside', { class: 'prof-emph', 'aria-label': 'Professor emphasis' },
       h('div', { class: 'pe-title' }, emph.length > 1 ? `★ Professor emphasis (${emph.length})` : '★ Professor emphasis'),
@@ -65,7 +77,8 @@ export function render(ctx) {
     sec.append(sentinel);
     main.append(sec);
     const tl = h('a', { href: '#', onclick: (e) => { e.preventDefault(); sec.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, s.heading);
-    const li = h('li', null, tl);
+    const top = Math.max(0, ...(s.gsiFocus || []).map((g) => g.level || 1));
+    const li = h('li', null, tl, top >= 2 && h('span', { class: 'gsi-chip', title: 'GSI exam focus: ' + GSI_LEVEL[top] }, '🎯 GSI focus'));
     toc.append(li);
     readEls.set(s.id, { toc: li, btn, sec, sentinel });
   });
@@ -86,6 +99,15 @@ export function render(ctx) {
   put(root, h('div', { class: 'wrap wide' }, h('div', { class: 'mod-layout' }, main, side)));
   sections.forEach((s) => paint(s.id));
 
+  // deep link: #/m/<module>?s=<section> scrolls to that section (twice, since lazy figures shift the layout)
+  if (targetIdx >= 0) {
+    const el = readEls.get(sections[targetIdx].id).sec;
+    const go = () => { if (el.isConnected) el.scrollIntoView({ block: 'start' }); };
+    el.classList.add('flash-target');
+    requestAnimationFrame(go);
+    const t1 = setTimeout(go, 400), t2 = setTimeout(() => { go(); el.classList.remove('flash-target'); }, 1200);
+    ctx.onCleanup(() => { clearTimeout(t1); clearTimeout(t2); });
+  }
   // auto-mark read when scrolled through
   if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver((entries) => {
@@ -98,7 +120,7 @@ export function render(ctx) {
       }
     }, { threshold: 0 });
     // let layout settle (figures lazy-load) before observing
-    const t = setTimeout(() => readEls.forEach((e) => io.observe(e.sentinel)), 600);
+    const t = setTimeout(() => { let i = 0; readEls.forEach((e) => { if (i++ >= targetIdx) io.observe(e.sentinel); }); }, 600);
     ctx.onCleanup(() => { clearTimeout(t); io.disconnect(); });
   }
   // highlight current section in the TOC

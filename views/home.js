@@ -1,6 +1,6 @@
-import { h, md, mdInline, fill, put } from '../lib/render.js?v=49d96dca82';
-import * as store from '../lib/store.js?v=49d96dca82';
-import { lectureLabel, scoreText } from './module.js?v=49d96dca82';
+import { h, md, mdInline, fill, put } from '../lib/render.js?v=7df8fd5db6';
+import * as store from '../lib/store.js?v=7df8fd5db6';
+import { lectureLabel, scoreText } from './module.js?v=7df8fd5db6';
 
 const fmtDate = (iso) => new Date(iso).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
@@ -53,7 +53,11 @@ export function render(ctx) {
     const cardsN = decks.reduce((n, d) => n + d.cards.length, 0);
     const mastery = decks.length ? Math.round(decks.reduce((n, d) => n + store.deckMastery(d), 0) / decks.length) : 0;
     const tile = (href, title, sub, on = true, cls = '') => h(on ? 'a' : 'div', { class: 'tile ' + cls + (on ? '' : ' disabled'), href: on ? href : null }, h('div', { class: 'tile-title' }, title), h('div', { class: 'tile-sub' }, sub));
+    const gsiTopics = (ctx.bundle.focus || []).filter((f) => !part.focus || part.focus.includes(f.id)).flatMap((f) => f.topics || []);
+    const gsiDone = store.focusDone();
     kids.push(h('div', { class: 'tiles' },
+      gsiTopics.length > 0 && tile('#/focus', `🎯 GSI Exam Focus: ${gsiTopics.length} topic${gsiTopics.length > 1 ? 's' : ''}`,
+        `${gsiTopics.filter((t) => gsiDone.has(t.id)).length} checked off · ${gsiTopics.filter((t) => t.level === 3).length} likely exam questions · start here`, true, 'gsi-tile'),
       tile('#/memorize', 'Memorize', decks.length ? `${decks.length} deck${decks.length > 1 ? 's' : ''} · ${cardsN} cards · ${mastery}% mastery` : 'Coming soon', decks.length > 0),
       tile('#/exam', 'Exam practice', exams.length ? `${exams.length} exam set${exams.length > 1 ? 's' : ''}${exams.some((x) => x.timed) ? ' · timed mode' : ''}` : 'Coming soon', exams.length > 0),
       tile('#/missed', `Retry missed (${missed})`, missed ? 'Questions you last got wrong' : 'Nothing missed yet', missed > 0, missed ? 'warn' : '')));

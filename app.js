@@ -1,15 +1,16 @@
-import { unlock, WrongPasscode } from './lib/crypto.js?v=49d96dca82';
-import * as store from './lib/store.js?v=49d96dca82';
-import { h, applyTheme } from './lib/render.js?v=49d96dca82';
+import { unlock, WrongPasscode } from './lib/crypto.js?v=7df8fd5db6';
+import * as store from './lib/store.js?v=7df8fd5db6';
+import { h, applyTheme, md } from './lib/render.js?v=7df8fd5db6';
 
 const VIEWS = {
-  '': () => import('./views/home.js?v=49d96dca82'),
-  m: () => import('./views/module.js?v=49d96dca82'),
-  practice: () => import('./views/practice.js?v=49d96dca82'),
-  memorize: () => import('./views/memorize.js?v=49d96dca82'),
-  exam: () => import('./views/exam.js?v=49d96dca82'),
-  missed: () => import('./views/missed.js?v=49d96dca82'),
-  settings: () => import('./views/settings.js?v=49d96dca82'),
+  '': () => import('./views/home.js?v=7df8fd5db6'),
+  m: () => import('./views/module.js?v=7df8fd5db6'),
+  focus: () => import('./views/focus.js?v=7df8fd5db6'),
+  practice: () => import('./views/practice.js?v=7df8fd5db6'),
+  memorize: () => import('./views/memorize.js?v=7df8fd5db6'),
+  exam: () => import('./views/exam.js?v=7df8fd5db6'),
+  missed: () => import('./views/missed.js?v=7df8fd5db6'),
+  settings: () => import('./views/settings.js?v=7df8fd5db6'),
 };
 
 const app = document.getElementById('app');
@@ -85,23 +86,45 @@ function start() {
   app.replaceChildren();
   navEl = h('nav', { class: 'nav', 'aria-label': 'Main' });
   mainEl = h('main', { id: 'main', tabindex: '-1' });
-  app.append(h('header', { class: 'topbar' }, h('div', { class: 'topbar-in' }, h('a', { class: 'brand', href: '#/' }, h('img', { src: 'icon.svg', alt: '', width: 24, height: 24 }), h('span', null, 'MCB 102')), navEl)), mainEl);
+  app.append(...[whatsNew(course)].filter(Boolean), h('header', { class: 'topbar' }, h('div', { class: 'topbar-in' }, h('a', { class: 'brand', href: '#/' }, h('img', { src: 'icon.svg', alt: '', width: 24, height: 24 }), h('span', null, 'MCB 102')), navEl)), mainEl);
   window.removeEventListener('hashchange', route);
   window.addEventListener('hashchange', route);
   route();
+}
+
+// ---------- "What's new" banner: shown once per update per browser ----------
+function whatsNew(course) {
+  const ups = (course.updates || []).filter((u) => u && u.id && u.text);
+  const ids = ups.map((u) => u.id);
+  let seen = store.seenUpdates();
+  if (seen === null && store.isFirstVisit()) { store.markUpdatesSeen(ids); seen = ids; } // brand-new visitors don't need it
+  const fresh = ups.filter((u) => !(seen || []).includes(u.id));
+  if (!fresh.length) return null;
+  const u = fresh[0];
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(u.date || '');
+  const when = m ? new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : null;
+  const box = h('div', { class: 'whatsnew', role: 'region', 'aria-label': "What's new" },
+    h('div', { class: 'whatsnew-in' },
+      h('div', { class: 'wn-body' }, h('span', { class: 'wn-tag' }, "What's new"), h('span', { html: md(u.text, true) }), when && h('span', { class: 'wn-date' }, when)),
+      h('button', { class: 'wn-x', type: 'button', 'aria-label': "Dismiss what's new", onclick: () => { store.markUpdatesSeen(ids); box.remove(); } }, 'Dismiss')));
+  box.querySelectorAll('a[href^="#"]').forEach((a) => { a.removeAttribute('target'); a.removeAttribute('rel'); });
+  return box;
 }
 
 function refreshNav() {
   if (!navEl || !bundle) return;
   const seg = location.hash.replace(/^#\/?/, '').split(/[/?]/)[0];
   const missed = store.missedItems(bundle).length;
-  const link = (href, text, key, extra) => h('a', { href, class: seg === key ? 'active' : '', 'aria-current': seg === key ? 'page' : null }, text, extra);
+  // `short` is the label shown on phones so all six items fit without scrolling
+  const link = (href, text, key, extra, short) => h('a', { href, class: (seg === key ? 'active' : '') + (key === '' ? ' nav-home' : ''), 'aria-current': seg === key ? 'page' : null, 'aria-label': text },
+    h('span', { class: 'nl-full' }, text), h('span', { class: 'nl-short', 'aria-hidden': 'true' }, short || text), extra);
   navEl.replaceChildren(
     link('#/', 'Home', ''),
-    link('#/memorize', 'Memorize', 'memorize'),
+    link('#/focus', 'Exam Focus', 'focus', null, '🎯 Focus'),
+    link('#/memorize', 'Memorize', 'memorize', null, 'Cards'),
     link('#/exam', 'Exams', 'exam'),
     link('#/missed', 'Missed', 'missed', missed ? h('span', { class: 'pill' }, String(missed)) : null),
-    link('#/settings', 'Settings', 'settings'));
+    link('#/settings', 'Settings', 'settings', null, '⚙'));
 }
 
 async function route() {

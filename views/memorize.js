@@ -1,6 +1,6 @@
-import { h, md, mdInline, figureEl, plain, fill, put } from '../lib/render.js?v=49d96dca82';
-import * as store from '../lib/store.js?v=49d96dca82';
-import { mountEngine } from './practice.js?v=49d96dca82';
+import { h, md, mdInline, figureEl, plain, fill, put } from '../lib/render.js?v=7df8fd5db6';
+import * as store from '../lib/store.js?v=7df8fd5db6';
+import { mountEngine } from './practice.js?v=7df8fd5db6';
 
 const FIELD_NAMES = { three: '3-letter code', one: '1-letter code', cls: 'class', class: 'class', group: 'category', doubleBonds: 'number of double bonds', notation: 'C:DB notation', pKaR: 'side-chain pKa' };
 const ID_KEYS = ['name', 'title', 'topic', 'term', 'item'];
@@ -66,17 +66,19 @@ export function render(ctx) {
 function allTags(decks) {
   const n = new Map();
   for (const d of decks) for (const c of d.cards) for (const t of c.tags || []) n.set(t, (n.get(t) || 0) + 1);
-  const keep = [...n].filter(([t, k]) => k >= 3 && /^[a-z][a-z-]+$/i.test(t)).map(([t]) => t).sort();
-  return keep.includes('prof-memorize') ? ['prof-memorize', ...keep.filter((t) => t !== 'prof-memorize')] : keep;
+  const special = ['gsi-focus', 'prof-memorize'];
+  const keep = [...n].filter(([t, k]) => (special.includes(t) ? k >= 1 : k >= 3) && /^[a-z][a-z-]+$/i.test(t)).map(([t]) => t).sort();
+  return [...special.filter((t) => keep.includes(t)), ...keep.filter((t) => !special.includes(t))];
 }
-const tagLabel = (t) => (t === 'prof-memorize' ? '★ Prof said memorize' : t.replace(/-/g, ' '));
+const tagLabel = (t) => (t === 'prof-memorize' ? '★ Prof said memorize' : t === 'gsi-focus' ? '🎯 GSI focus' : t.replace(/-/g, ' '));
+export const isGsi = (c) => (c.tags || []).includes('gsi-focus');
 
 function tagFilter(tagsAll, onChange) {
   const sel = new Set(store.get('memtags', []) || []);
   if (!tagsAll.length) return null;
   const box = h('div', { class: 'chips', role: 'group', 'aria-label': 'Filter by tag' });
   let expanded = tagsAll.length <= 14;
-  const paint = () => fill(box, h('span', { class: 'chips-l' }, 'Tags:'), ...(expanded ? tagsAll : [...tagsAll].sort((a, b) => sel.has(b) - sel.has(a)).slice(0, 12)).map((t) => h('button', { class: 'chip' + (sel.has(t) ? ' on' : ''), type: 'button', 'aria-pressed': sel.has(t) ? 'true' : 'false', onclick: () => { sel.has(t) ? sel.delete(t) : sel.add(t); store.set('memtags', [...sel]); paint(); onChange(); } }, tagLabel(t))),
+  const paint = () => fill(box, h('span', { class: 'chips-l' }, 'Tags:'), ...(expanded ? tagsAll : [...tagsAll].sort((a, b) => sel.has(b) - sel.has(a)).slice(0, 12)).map((t) => h('button', { class: 'chip' + (t === 'gsi-focus' ? ' gsi-chip-btn' : '') + (sel.has(t) ? ' on' : ''), type: 'button', 'aria-pressed': sel.has(t) ? 'true' : 'false', onclick: () => { sel.has(t) ? sel.delete(t) : sel.add(t); store.set('memtags', [...sel]); paint(); onChange(); } }, tagLabel(t))),
     sel.size ? h('button', { class: 'chip clear', type: 'button', onclick: () => { sel.clear(); store.set('memtags', []); paint(); onChange(); } }, 'Clear') : null,
     expanded ? null : h('button', { class: 'chip clear', type: 'button', onclick: () => { expanded = true; paint(); } }, `+${tagsAll.length - 12} more`));
   paint();
@@ -122,10 +124,12 @@ function deckHome(ctx, root, deck, cards) {
 }
 
 // ---------- Flashcards ----------
-function flash(ctx, root, deck, cards, all = false) {
+export function flash(ctx, root, deck, cards, all = false, o = {}) {
+  const backHref = o.backHref || '#/memorize/' + deck.id;
+  const deckOf = (c) => (o.deckOf && o.deckOf(c)) || deck;
   const now = Date.now();
   let queue = cards.filter((c) => { const s = store.getCard(c.id); return all || !s || s.due <= now; });
-  queue = shuffle(queue).sort((a, b) => (store.getCard(a.id)?.b || 1) - (store.getCard(b.id)?.b || 1));
+  queue = shuffle(queue).sort((a, b) => ((store.getCard(a.id)?.b || 1) - (store.getCard(b.id)?.b || 1)) || (isGsi(b) - isGsi(a)));
   let flipped = false, done = 0;
   const total = queue.length;
   const stats = { again: 0, good: 0 };
@@ -152,18 +156,18 @@ function flash(ctx, root, deck, cards, all = false) {
     return h('div', { class: 'box-strip', 'aria-label': 'Box distribution' }, h('span', null, `New ${n}`), [1, 2, 3, 4, 5].map((b) => h('span', null, `Box ${b}: ${d[b]}`)));
   }
   function draw() {
-    const head = h('div', { class: 'engine-head' }, h('a', { class: 'back', href: '#/memorize/' + deck.id }, '← ' + deck.title), h('h1', null, 'Flashcards'));
+    const head = h('div', { class: 'engine-head' }, h('a', { class: 'back', href: backHref }, '← ' + deck.title), h('h1', null, 'Flashcards'));
     if (!queue.length) {
       fill(root, head, h('div', { class: 'summary card-box' }, h('h2', null, total ? 'Session complete' : 'All caught up'),
         total ? h('p', null, `${stats.good} Good · ${stats.again} Again`) : h('p', { class: 'muted' }, 'No cards are due right now. Come back later, or review everything anyway.'),
-        boxes(), h('div', { class: 'row-actions' }, h('button', { class: 'btn primary', type: 'button', onclick: () => { root.replaceChildren(); flash(ctx, root, deck, cards, true); } }, 'Study all cards anyway'),
-          h('a', { class: 'btn ghost', href: '#/memorize/' + deck.id }, 'Done'))));
+        boxes(), h('div', { class: 'row-actions' }, h('button', { class: 'btn primary', type: 'button', onclick: () => { root.replaceChildren(); flash(ctx, root, deck, cards, true, o); } }, 'Study all cards anyway'),
+          h('a', { class: 'btn ghost', href: backHref }, 'Done'))));
       return;
     }
     const c = queue[0];
-    const front = h('div', { class: 'fc-face' }, h('div', { class: 'md fc-text', html: md(c.front) }), c.figure && figureEl(bare(c.figure)));
+    const front = h('div', { class: 'fc-face' }, isGsi(c) && h('span', { class: 'badge gsi', title: 'GSI exam focus' }, '🎯 GSI focus'), h('div', { class: 'md fc-text', html: md(c.front) }), c.figure && figureEl(bare(c.figure)));
     const back = h('div', { class: 'fc-face back' }, h('div', { class: 'md fc-text', html: md(c.back) }),
-      c.fields && h('dl', { class: 'fc-fields' }, Object.entries(c.fields).filter(([, v]) => v != null && v !== '').map(([k, v]) => [h('dt', null, fieldName(deck, k)), h('dd', null, String(v))])),
+      c.fields && h('dl', { class: 'fc-fields' }, Object.entries(c.fields).filter(([, v]) => v != null && v !== '').map(([k, v]) => [h('dt', null, fieldName(deckOf(c), k)), h('dd', null, String(v))])),
       c.source && h('div', { class: 'small muted' }, 'Source: ' + c.source));
     const sc = store.getCard(c.id);
     fill(root, head,
