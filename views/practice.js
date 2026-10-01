@@ -1,6 +1,6 @@
 // Practice engine shared by modules, exams, the missed queue and memorize-quiz.
-import { h, md, mdInline, figureEl, plain, fmtTime, fill, put } from '../lib/render.js?v=f2a08e3cc5';
-import * as store from '../lib/store.js?v=f2a08e3cc5';
+import { h, md, mdInline, figureEl, plain, fmtTime, fill, put } from '../lib/render.js?v=49d96dca82';
+import * as store from '../lib/store.js?v=49d96dca82';
 
 export const DIFF = { 1: 'Recall', 2: 'Apply', 3: 'Exam-hard' };
 const SUP = { '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '⁻': '-', '⁺': '+' };
