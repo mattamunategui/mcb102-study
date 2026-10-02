@@ -1,29 +1,30 @@
-import { unlock, WrongPasscode } from './lib/crypto.js?v=7df8fd5db6';
-import * as store from './lib/store.js?v=7df8fd5db6';
-import { h, applyTheme, md } from './lib/render.js?v=7df8fd5db6';
+import { HUB } from './hub.js?v=9cf1156b08';
+import { unlock, WrongPasscode } from './lib/crypto.js?v=9cf1156b08';
+import * as store from './lib/store.js?v=9cf1156b08';
+import { h, applyTheme, md } from './lib/render.js?v=9cf1156b08';
 
 const VIEWS = {
-  '': () => import('./views/home.js?v=7df8fd5db6'),
-  m: () => import('./views/module.js?v=7df8fd5db6'),
-  focus: () => import('./views/focus.js?v=7df8fd5db6'),
-  practice: () => import('./views/practice.js?v=7df8fd5db6'),
-  memorize: () => import('./views/memorize.js?v=7df8fd5db6'),
-  exam: () => import('./views/exam.js?v=7df8fd5db6'),
-  missed: () => import('./views/missed.js?v=7df8fd5db6'),
-  settings: () => import('./views/settings.js?v=7df8fd5db6'),
+  '': () => import('./views/home.js?v=9cf1156b08'),
+  m: () => import('./views/module.js?v=9cf1156b08'),
+  focus: () => import('./views/focus.js?v=9cf1156b08'),
+  practice: () => import('./views/practice.js?v=9cf1156b08'),
+  memorize: () => import('./views/memorize.js?v=9cf1156b08'),
+  exam: () => import('./views/exam.js?v=9cf1156b08'),
+  missed: () => import('./views/missed.js?v=9cf1156b08'),
+  settings: () => import('./views/settings.js?v=9cf1156b08'),
 };
 
 const app = document.getElementById('app');
 let bundle = null, ctxBase = null, cleanups = [], navEl = null, mainEl = null, routeSeq = 0;
 
 applyTheme(store.get('theme', 'auto'));
-window.addEventListener('mcb102:progress', () => refreshNav());
+window.addEventListener('hub:progress', () => refreshNav());
 
 // ---------- gate ----------
 function showGate(message = '', busy = false) {
   bundle = null;
   app.replaceChildren();
-  document.title = 'MCB 102 Study Hub';
+  document.title = HUB.name;
   const input = h('input', { id: 'pass', type: 'password', autocomplete: 'current-password', placeholder: 'Passcode', 'aria-label': 'Passcode', required: true, autofocus: true, disabled: busy });
   const err = h('div', { class: 'gate-err', role: 'alert' }, message);
   const btn = h('button', { class: 'btn primary block', type: 'submit', disabled: busy }, busy ? 'Unlocking…' : 'Unlock');
@@ -35,8 +36,7 @@ function showGate(message = '', busy = false) {
     form.classList.add('loading');
     await tryUnlock(p, true);
   } },
-  h('img', { class: 'gate-logo', src: 'icon.svg', alt: '', width: 56, height: 56 }),
-  h('h1', null, 'MCB 102 Study Hub'),
+  h('h1', null, HUB.name),
   h('p', { class: 'muted' }, 'Enter the passcode to open the hub.'),
   h('label', { class: 'sr-only', for: 'pass' }, 'Passcode'), input, btn, err,
   h('div', { class: 'spinner', 'aria-hidden': 'true' }));
@@ -63,10 +63,11 @@ async function tryUnlock(passcode, fromForm) {
 }
 
 function lock() {
+  if (HUB.mode === 'local') return;
   store.clearPass();
   cleanup();
   bundle = null;
-  showGate('Locked.');
+  showGate();
 }
 
 // ---------- shell + router ----------
@@ -86,7 +87,7 @@ function start() {
   app.replaceChildren();
   navEl = h('nav', { class: 'nav', 'aria-label': 'Main' });
   mainEl = h('main', { id: 'main', tabindex: '-1' });
-  app.append(...[whatsNew(course)].filter(Boolean), h('header', { class: 'topbar' }, h('div', { class: 'topbar-in' }, h('a', { class: 'brand', href: '#/' }, h('img', { src: 'icon.svg', alt: '', width: 24, height: 24 }), h('span', null, 'MCB 102')), navEl)), mainEl);
+  app.append(...[whatsNew(course)].filter(Boolean), h('header', { class: 'topbar' }, h('div', { class: 'topbar-in' }, h('a', { class: 'brand', href: '#/' }, h('img', { src: 'icon.svg', alt: '', width: 24, height: 24 }), h('span', null, HUB.short)), navEl)), mainEl);
   window.removeEventListener('hashchange', route);
   window.addEventListener('hashchange', route);
   route();
@@ -120,11 +121,11 @@ function refreshNav() {
     h('span', { class: 'nl-full' }, text), h('span', { class: 'nl-short', 'aria-hidden': 'true' }, short || text), extra);
   navEl.replaceChildren(
     link('#/', 'Home', ''),
-    link('#/focus', 'Exam Focus', 'focus', null, '🎯 Focus'),
+    link('#/focus', 'Exam Focus', 'focus', null, 'Focus'),
     link('#/memorize', 'Memorize', 'memorize', null, 'Cards'),
     link('#/exam', 'Exams', 'exam'),
     link('#/missed', 'Missed', 'missed', missed ? h('span', { class: 'pill' }, String(missed)) : null),
-    link('#/settings', 'Settings', 'settings', null, '⚙'));
+    link('#/settings', 'Settings', 'settings', null, 'Settings'));
 }
 
 async function route() {
@@ -150,5 +151,17 @@ async function route() {
 }
 
 // ---------- boot ----------
+// Local mode (private app on this Mac): plain bundle, no passcode gate.
+async function openLocal() {
+  try {
+    const r = await fetch('data/bundle.json', { cache: 'no-cache' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    bundle = await r.json();
+    start();
+  } catch (e) {
+    app.replaceChildren(h('main', { class: 'gate' }, h('div', { class: 'gate-card' }, h('h1', null, HUB.name), h('p', { class: 'gate-err' }, 'Could not load content: ' + e.message))));
+  }
+}
 const saved = store.getPass();
-if (saved) { showGate('', true); tryUnlock(saved, false); } else showGate();
+if (HUB.mode === 'local') openLocal();
+else if (saved) { showGate('', true); tryUnlock(saved, false); } else showGate();
