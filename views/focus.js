@@ -1,10 +1,10 @@
 // Exam focus (top-priority source): topics grouped by level, with deep links, practice sets and flashcards.
-import { HUB } from '../hub.js?v=5e370b1216';
-import { h, md, figureEl, fill, put } from '../lib/render.js?v=5e370b1216';
-import * as store from '../lib/store.js?v=5e370b1216';
-import { mountEngine } from './practice.js?v=5e370b1216';
-import { flash } from './memorize.js?v=5e370b1216';
-import { levelPill } from './module.js?v=5e370b1216';
+import { HUB } from '../hub.js?v=8ec4e7dc3c';
+import { h, md, figureEl, fill, put } from '../lib/render.js?v=8ec4e7dc3c';
+import * as store from '../lib/store.js?v=8ec4e7dc3c';
+import { mountEngine } from './practice.js?v=8ec4e7dc3c';
+import { flash } from './memorize.js?v=8ec4e7dc3c';
+import { levelPill } from './module.js?v=8ec4e7dc3c';
 
 /** All topics across focus pages (optionally for one page), with their page. */
 export function focusTopics(ctx, pageId = null) {
