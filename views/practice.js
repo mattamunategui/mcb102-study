@@ -1,7 +1,7 @@
 // Practice engine shared by modules, exams, the missed queue and memorize-quiz.
-import { HUB } from '../hub.js?v=f38ddab64f';
-import { h, md, mdInline, figureEl, plain, fmtTime, fill, put } from '../lib/render.js?v=f38ddab64f';
-import * as store from '../lib/store.js?v=f38ddab64f';
+import { HUB } from '../hub.js?v=84b9e99bbd';
+import { h, md, mdInline, figureEl, plain, fmtTime, fill, put } from '../lib/render.js?v=84b9e99bbd';
+import * as store from '../lib/store.js?v=84b9e99bbd';
 
 export const GSI_LEVEL = { 3: 'Exam question', 2: 'Emphasized', 1: 'Covered' };
 export const DIFF = { 1: 'Recall', 2: 'Apply', 3: 'Exam-hard' };
@@ -52,6 +52,9 @@ export function mountEngine(root, opts) {
   const filtersOn = opts.filters !== false && !timed;
   const S = { filter: 'all', order: opts.defaultOrder || 'orig', shuffle: false, list: [], idx: 0, phase: 'run', confirming: false };
   const sess = new Map();
+  // Resume: if some questions were answered in an earlier visit, start on the unanswered ones.
+  const nDone = items.filter((it) => store.getQ(it.q.id)).length;
+  if (filtersOn && nDone && nDone < items.length) S.filter = 'unanswered';
   const st = (q) => { if (!sess.has(q.id)) sess.set(q.id, { resp: undefined, revealed: false, done: false, ok: null }); return sess.get(q.id); };
   let timerId = null, endsAt = 0, timerEl = null;
   const record = (q, ok) => { if (!opts.noRecord && ok != null) store.recordAnswer(q.id, ok); };
@@ -240,6 +243,7 @@ export function mountEngine(root, opts) {
     body.push(h('div', { class: 'q-meta' },
       h('span', { class: 'q-type' }, { mcq: 'Multiple choice', tf: 'True or false', multi: 'Select all that apply', numeric: 'Numeric', short: 'Short answer' }[q.type]),
       q.gsi && h('span', { class: 'tag-focus', title: HUB.focus.label + ': ' + GSI_LEVEL[q.gsi] }, HUB.focus.short),
+      !fb && store.getQ(q.id) && h('span', { class: 'q-label' }, store.getQ(q.id).ok ? 'Answered before: correct ✓' : 'Answered before: missed ✗'),
       it.label && h('span', { class: 'q-label' }, it.href ? h('a', { href: it.href }, it.label) : it.label)));
     body.push(h('div', { class: 'prompt', html: md(q.prompt) }));
     if (q.figure) body.push(figureEl(q.figure));

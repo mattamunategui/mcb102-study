@@ -1,6 +1,6 @@
-import { HUB } from '../hub.js?v=f38ddab64f';
-import { h, applyTheme, fill, put } from '../lib/render.js?v=f38ddab64f';
-import * as store from '../lib/store.js?v=f38ddab64f';
+import { HUB } from '../hub.js?v=84b9e99bbd';
+import { h, applyTheme, fill, put } from '../lib/render.js?v=84b9e99bbd';
+import * as store from '../lib/store.js?v=84b9e99bbd';
 
 export function render(ctx) {
   document.title = 'Settings · ' + HUB.short;
