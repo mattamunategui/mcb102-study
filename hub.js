@@ -8,5 +8,6 @@ export const HUB = {
   "label": "GSI exam focus",
   "short": "GSI",
   "blurb": "What the discussion GSI emphasized, ranked by how likely it is to be on the exam. Start at the top."
- }
+ },
+ "askName": false
 };
