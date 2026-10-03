@@ -1,10 +1,10 @@
 // Exam focus (top-priority source): topics grouped by level, with deep links, practice sets and flashcards.
-import { HUB } from '../hub.js?v=dc0df4f00a';
-import { h, md, figureEl, fill, put } from '../lib/render.js?v=dc0df4f00a';
-import * as store from '../lib/store.js?v=dc0df4f00a';
-import { mountEngine } from './practice.js?v=dc0df4f00a';
-import { flash } from './memorize.js?v=dc0df4f00a';
-import { levelPill } from './module.js?v=dc0df4f00a';
+import { HUB } from '../hub.js?v=034fb38127';
+import { h, md, figureEl, fill, put } from '../lib/render.js?v=034fb38127';
+import * as store from '../lib/store.js?v=034fb38127';
+import { mountEngine } from './practice.js?v=034fb38127';
+import { flash } from './memorize.js?v=034fb38127';
+import { levelPill } from './module.js?v=034fb38127';
 
 /** All topics across focus pages (optionally for one page), with their page. */
 export function focusTopics(ctx, pageId = null) {
@@ -25,14 +25,14 @@ export function render(ctx) {
   if (a === 'all' && mode === 'practice') {
     const items = gsiOrder(store.allQuestionItems(ctx.bundle).filter((it) => it.q.gsi));
     if (!items.length) { put(root, h('a', { class: 'back', href: '#/focus' }, 'Exam focus'), h('p', null, 'No ' + HUB.focus.short + '-tagged questions yet.')); return; }
-    ctx.onCleanup(mountEngine(root, { title: `All ${HUB.focus.short} focus questions (${items.length})`, items, backHref: '#/focus', backLabel: 'Exam focus', defaultOrder: 'gsi' }));
+    ctx.onCleanup(mountEngine(root, { title: `All ${HUB.focus.short} focus questions (${items.length})`, items, backHref: '#/focus', backLabel: 'Exam focus', defaultOrder: 'gsi', mods: ctx.mods }));
     return;
   }
   const topic = a && focusTopics(ctx).find((t) => t.id === a);
   if (topic && mode === 'practice') {
     const items = questionItems(ctx, topic.questionIds);
     if (!items.length) { put(root, h('a', { class: 'back', href: '#/focus/' + a }, 'Exam focus'), h('p', null, 'No questions linked to this topic yet.')); return; }
-    ctx.onCleanup(mountEngine(root, { title: topic.title, items, backHref: '#/focus/' + a, backLabel: 'Exam focus', defaultOrder: 'gsi' }));
+    ctx.onCleanup(mountEngine(root, { title: topic.title, items, backHref: '#/focus/' + a, backLabel: 'Exam focus', defaultOrder: 'gsi', mods: ctx.mods }));
     return;
   }
   if (topic && mode === 'flash') {
