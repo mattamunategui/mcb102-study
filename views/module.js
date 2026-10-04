@@ -1,7 +1,7 @@
-import { HUB } from '../hub.js?v=ff427e2cce';
-import { h, md, mdInline, figureEl, resourceEl, fill, put } from '../lib/render.js?v=ff427e2cce';
-import * as store from '../lib/store.js?v=ff427e2cce';
-import { setChatContext } from '../lib/chat.js?v=ff427e2cce';
+import { HUB } from '../hub.js?v=5360bd2802';
+import { h, md, mdInline, figureEl, resourceEl, fill, put } from '../lib/render.js?v=5360bd2802';
+import * as store from '../lib/store.js?v=5360bd2802';
+import { setChatContext } from '../lib/chat.js?v=5360bd2802';
 
 export const GSI_LEVEL = { 3: 'Exam question', 2: 'Emphasized', 1: 'Covered' };
 export const levelPill = (l) => h('span', { class: 'gsi-lv lv' + l, title: HUB.focus.short + ' level ' + l + ' of 3' }, GSI_LEVEL[l] || 'Covered');
