@@ -1,8 +1,8 @@
 // Practice engine shared by modules, exams, the playbook and memorize-quiz; also the Practice index (#/practice).
-import { HUB } from '../hub.js?v=19a5a69149';
-import { h, md, mdInline, figureEl, plain, fmtTime, fill, put } from '../lib/render.js?v=19a5a69149';
-import * as store from '../lib/store.js?v=19a5a69149';
-import { setChatContext } from '../lib/chat.js?v=19a5a69149';
+import { HUB } from '../hub.js?v=24e4efaf02';
+import { h, md, mdInline, figureEl, plain, fmtTime, fill, put } from '../lib/render.js?v=24e4efaf02';
+import * as store from '../lib/store.js?v=24e4efaf02';
+import { setChatContext } from '../lib/chat.js?v=24e4efaf02';
 
 export const GSI_LEVEL = { 3: 'Exam question', 2: 'Emphasized', 1: 'Covered' };
 export const DIFF = { 1: 'Recall', 2: 'Apply', 3: 'Exam-hard' };
@@ -453,7 +453,7 @@ export function render(ctx) {
   const order = ctx.course.parts.find((p) => p.modules.includes(id))?.modules || [];
   const pos = order.indexOf(id), nx = pos >= 0 ? ctx.mods.get(order[pos + 1]) : null;
   const nextLinks = nx ? [{ href: '#/m/' + nx.id, label: 'Read it', primary: true }, (nx.questions || []).length > 0 && { href: '#/practice/' + nx.id, label: `Practice its ${nx.questions.length} questions` }].filter(Boolean) : [];
-  ctx.onCleanup(mountEngine(root, { title: `Practice: ${mod.title}`, items, backHref: '#/', backLabel: pos >= 0 ? `Module ${pos + 1}` : 'All modules', doneLabel: 'All modules', nextLinks, nextTitle: nx && `Next up, Module ${pos + 2}: ${nx.title}`, defaultOrder: hasGroups ? 'cat' : 'gsi', groups: mod.groups, moduleId: id, mods: ctx.mods }));
+  ctx.onCleanup(mountEngine(root, { title: `Practice: ${mod.title}`, items, backHref: '#/m/' + id, backLabel: pos >= 0 ? `Module ${pos + 1}` : 'Module', doneLabel: 'Back to reading', nextLinks, nextTitle: nx && `Next up, Module ${pos + 2}: ${nx.title}`, defaultOrder: hasGroups ? 'cat' : 'gsi', groups: mod.groups, moduleId: id, mods: ctx.mods }));
 }
 
 function practiceIndex(ctx) {
