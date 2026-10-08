@@ -1,9 +1,9 @@
 // Efficiencymaxxing: per-module exam playbook (question types + fastest method), launches practice per play.
-import { HUB } from '../hub.js?v=1f5108930b';
-import { h, md, mdInline, figureEl, fill, put } from '../lib/render.js?v=1f5108930b';
-import * as store from '../lib/store.js?v=1f5108930b';
-import { mountEngine } from './practice.js?v=1f5108930b';
-import { focusTopics } from './focus.js?v=1f5108930b';
+import { HUB } from '../hub.js?v=53573b577b';
+import { h, md, mdInline, figureEl, fill, put } from '../lib/render.js?v=53573b577b';
+import * as store from '../lib/store.js?v=53573b577b';
+import { mountEngine } from './practice.js?v=53573b577b';
+import { focusTopics } from './focus.js?v=53573b577b';
 
 const LIKE = { 3: 'Very likely', 2: 'Likely', 1: 'Possible' };
 const doneSet = () => new Set(store.get('maxdone', []) || []);
@@ -16,8 +16,7 @@ export function render(ctx) {
   ctx.root.append(root);
   document.title = 'Efficiencymaxxing · ' + HUB.short;
 
-  const parts = ctx.course.parts;
-  let part = parts.find((p) => p.id === store.get('part', null)) || parts[0];
+  const part = store.currentPart(ctx.course);
   if (!part) { put(root, h('p', null, 'No playbook yet.')); return; }
   const files = (ctx.bundle.playbook || []).filter((f) => f.part === part.id);
   const plays = files.flatMap((f) => (f.plays || []).map((p) => ({ ...p, module: f.module, focus: [] })));

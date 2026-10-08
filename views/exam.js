@@ -1,7 +1,7 @@
-import { HUB } from '../hub.js?v=1f5108930b';
-import { h, md, fill, put } from '../lib/render.js?v=1f5108930b';
-import * as store from '../lib/store.js?v=1f5108930b';
-import { mountEngine } from './practice.js?v=1f5108930b';
+import { HUB } from '../hub.js?v=53573b577b';
+import { h, md, fill, put } from '../lib/render.js?v=53573b577b';
+import * as store from '../lib/store.js?v=53573b577b';
+import { mountEngine } from './practice.js?v=53573b577b';
 
 function examItems(ctx, exam) {
   const out = [];
@@ -19,7 +19,8 @@ export function render(ctx) {
   if (!id) {
     document.title = 'Exam practice' + ' · ' + HUB.short;
     put(root, h('a', { class: 'back', href: '#/' }, 'Home'), h('h1', null, 'Exam practice'));
-    for (const part of ctx.course.parts) {
+    const cur = store.currentPart(ctx.course);
+    for (const part of [cur, ...ctx.course.parts.filter((p) => p !== cur)].filter(Boolean)) {
       const ex = part.exams.map((e) => ctx.exams.get(e)).filter(Boolean);
       if (!ex.length) continue;
       put(root, h('h2', { class: 'section-title' }, part.title));
