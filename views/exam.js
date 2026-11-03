@@ -1,7 +1,7 @@
-import { HUB } from '../hub.js?v=995583ded9';
-import { h, md, fill, put } from '../lib/render.js?v=995583ded9';
-import * as store from '../lib/store.js?v=995583ded9';
-import { mountEngine } from './practice.js?v=995583ded9';
+import { HUB } from '../hub.js?v=cf07731f7a';
+import { h, md, fill, put } from '../lib/render.js?v=cf07731f7a';
+import * as store from '../lib/store.js?v=cf07731f7a';
+import { mountEngine } from './practice.js?v=cf07731f7a';
 
 function examItems(ctx, exam) {
   const out = [];
